@@ -121,7 +121,7 @@ export default function LoginPage() {
               <Input 
                 id="email"
                 placeholder="operator@ciphergate.net" 
-                className="h-14 bg-black/40 border-gray-600 text-xl pl-12 focus:border-primary transition-all rounded-none"
+                className="h-14 bg-black/40 border-gray-600 text-xl pl-12 focus:border-primary transition-all rounded-[5px]"
                 type="email"
                 required
                 value={formData.email}
@@ -139,7 +139,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => (window.location.href = "/auth/recover")}
-                  className="text-[10px] uppercase tracking-[0.2em] text-gray-500 hover:text-primary transition-colors"
+                  className="text-[10px] uppercase tracking-[0.2em] text-gray-500 hover:text-primary transition-colors cursor-pointer"
                 >
                   Forgot password?
                 </button>
@@ -150,7 +150,7 @@ export default function LoginPage() {
               <Input 
                 id="password"
                 placeholder="Password" 
-                className="h-14 bg-black/40 border-gray-600 text-xl pl-12 pr-12 focus:border-primary transition-all rounded-none"
+                className="h-14 bg-black/40 border-gray-600 text-xl pl-12 pr-12 focus:border-primary transition-all rounded-[5px]"
                 type={showPassword ? "text" : "password"}
                 required
                 value={formData.password}
@@ -159,7 +159,7 @@ export default function LoginPage() {
               <button 
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-white transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-white transition-colors cursor-pointer"
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -179,7 +179,7 @@ export default function LoginPage() {
                 </Label>
                 <Input 
                   placeholder="Repeat Password" 
-                  className="h-14 bg-black/40 border-gray-600 text-xl focus:border-primary transition-all rounded-none"
+                  className="h-14 bg-black/40 border-gray-600 text-xl focus:border-primary transition-all rounded-[5px]"
                   type="password"
                   required
                   value={formData.confirmPassword}
@@ -191,7 +191,7 @@ export default function LoginPage() {
 
           <Button 
             disabled={isLoading}
-            className="w-full h-14 bg-primary text-black font-black uppercase tracking-[0.2em] rounded-none hover:bg-white transition-all text-lg mt-4"
+            className="w-full h-14 bg-primary text-black font-black uppercase tracking-[0.2em] rounded-[5px] hover:bg-white transition-all text-lg mt-4 cursor-pointer flex items-center justify-center"
           >
             {isLoading ? "Processing..." : isLogin ? (
               <span className="flex items-center gap-2">Login <LogIn size={20} /></span>
@@ -239,7 +239,7 @@ export default function LoginPage() {
       <div className="mt-12">
         <button 
           onClick={() => window.location.href = '/'}
-          className="text-gray-700 hover:text-primary transition-colors flex items-center gap-2 uppercase text-[10px] font-black tracking-[0.4em]"
+          className="text-gray-700 hover:text-primary transition-colors flex items-center gap-2 uppercase text-[10px] font-black tracking-[0.4em] cursor-pointer"
         >
           <ArrowLeft size={14} /> Back to home page
         </button>

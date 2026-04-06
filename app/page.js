@@ -155,11 +155,11 @@ export default function Home() {
             <div className="w-px h-4 bg-white/20" />
             <span className="text-[10px] font-black uppercase tracking-[0.8em]">CipherGate Network</span>
           </div>
-          <div className="flex flex-col md:flex-row justify-center gap-8 md:gap-16 mb-8 text-[11px]  text-gray-600 uppercase tracking-widest">
+          <div className="flex flex-col md:flex-row justify-center gap-8 md:gap-16 mb-8 text-[11px]  text-white uppercase tracking-widest">
             <div className="flex items-center gap-2 justify-center"><Activity size={14} className="text-primary"/> <span>Neural Status: Active</span></div>
             <div className="flex items-center gap-2 justify-center"><Command size={14} className="text-primary"/> <span>Zero-Knowledge Env</span></div>
           </div>
-          <p className="text-[10px] text-gray-700 font-medium">Built by Aditi Shukla × Aditya Yadav</p>
+          <p className="text-[15px] text-white font-medium">Built by Aditi Shukla × Aditya Yadav</p>
         </div>
       </footer>
 

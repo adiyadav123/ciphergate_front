@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono, Bitcount_Prop_Double, Inconsolata } from "next/font/google";
 import "./globals.css";
+import { MfaReauthWatcher } from "@/components/mfa-reauth-watcher";
 
 const bitCount = Bitcount_Prop_Double({
   variable: "--font-bitcount",
@@ -28,7 +29,10 @@ export default function RootLayout({ children }) {
       className={`${bitCount.variable} ${inconsolata.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <MfaReauthWatcher />
+        {children}
+      </body>
     </html>
   );
 }

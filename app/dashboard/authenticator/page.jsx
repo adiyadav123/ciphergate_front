@@ -19,6 +19,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { API_BASE_URL } from "@/lib/env";
 
 export default function AuthenticatorPage() {
@@ -31,6 +38,7 @@ export default function AuthenticatorPage() {
   const [scanStatus, setScanStatus] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [otpById, setOtpById] = useState({});
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const scanTimerRef = useRef(null);
@@ -80,6 +88,7 @@ export default function AuthenticatorPage() {
       if (res.ok) {
         const data = await res.json();
         setAuthenticators(data.auths || []);
+        fetchAuthenticatorCodes(userId);
       }
     } catch (err) {
       console.error("Failed to fetch authenticators:", err);
@@ -88,16 +97,38 @@ export default function AuthenticatorPage() {
     }
   };
 
+  const fetchAuthenticatorCodes = async (userId) => {
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/vault/authenticator/codes?user_id=${userId}&t=${Date.now()}`,
+        { cache: "no-store" }
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      const next = {};
+      for (const item of data.items || []) {
+        next[item.id] = {
+          code: item.code,
+          period: item.period || 30,
+          seconds_remaining: item.seconds_remaining || 30,
+        };
+      }
+      setOtpById(next);
+    } catch (err) {
+      console.error("Failed to fetch authenticator codes:", err);
+    }
+  };
+
   const handleAddAuthenticator = async (e) => {
     e.preventDefault();
-    if (!formData.issuer.trim() || !formData.secret_key.trim()) return;
+    if (!session?.user?.id || !formData.issuer.trim() || !formData.secret_key.trim()) return;
 
     try {
       const res = await fetch(`${API_BASE_URL}/vault/authenticator`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_id: session.user.id,
+          user_id: session?.user?.id,
           issuer: formData.issuer,
           account_name: formData.account_name,
           secret_key: formData.secret_key,
@@ -119,6 +150,7 @@ export default function AuthenticatorPage() {
   };
 
   const handleDeleteAuthenticator = async (id) => {
+    if (!session?.user?.id) return;
     try {
       const res = await fetch(`${API_BASE_URL}/vault/authenticator/${id}`, {
         method: "DELETE",
@@ -139,8 +171,9 @@ export default function AuthenticatorPage() {
   };
 
   const handleShowQr = async (authId) => {
+    if (!session?.user?.id) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/vault/authenticator/${authId}/qr?user_id=${session.user.id}`);
+      const res = await fetch(`${API_BASE_URL}/vault/authenticator/${authId}/qr?user_id=${session?.user?.id}`);
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.detail || "Unable to generate QR preview");
@@ -233,6 +266,42 @@ export default function AuthenticatorPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    // Keep countdown smooth every second in the UI.
+    const countdownTimer = setInterval(() => {
+      setOtpById((prev) => {
+        const next = {};
+        for (const [id, meta] of Object.entries(prev)) {
+          const period = meta.period || 30;
+          const remaining = (meta.seconds_remaining || 1) - 1;
+          next[id] = {
+            ...meta,
+            seconds_remaining: remaining <= 0 ? period : remaining,
+          };
+        }
+        return next;
+      });
+    }, 1000);
+
+    // Poll backend periodically to get fresh OTP values at/near step boundaries.
+    if (session?.user?.id) fetchAuthenticatorCodes(session.user.id);
+    const refreshTimer = setInterval(() => {
+      if (session?.user?.id) fetchAuthenticatorCodes(session.user.id);
+    }, 5000);
+
+    return () => {
+      clearInterval(countdownTimer);
+      clearInterval(refreshTimer);
+    };
+  }, [session?.user?.id]);
+
+  const formatOtpCode = (code) => {
+    const normalized = String(code || "").replace(/\D/g, "").padStart(6, "0").slice(-6);
+    return `${normalized.slice(0, 3)} ${normalized.slice(3)}`;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white font-inconsolata flex items-center justify-center">
@@ -253,7 +322,7 @@ export default function AuthenticatorPage() {
           </h1>
           <button
             onClick={() => (window.location.href = "/dashboard")}
-            className="flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-[0.2em] hover:text-primary transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-[0.2em] hover:text-primary transition-colors cursor-pointer"
           >
             <ArrowLeft size={16} /> Back
           </button>
@@ -266,7 +335,7 @@ export default function AuthenticatorPage() {
         <div className="mb-8 flex gap-3">
           <Button
             onClick={() => setShowAdd(!showAdd)}
-            className="bg-primary text-black hover:bg-white rounded-none uppercase tracking-[0.2em] font-bold flex items-center gap-2"
+            className="bg-primary text-black hover:bg-white rounded-[5px] uppercase tracking-[0.2em] font-bold flex items-center gap-2 cursor-pointer"
           >
             <Plus size={16} /> Add Authenticator
           </Button>
@@ -289,7 +358,7 @@ export default function AuthenticatorPage() {
                   <Button
                     type="button"
                     onClick={startScanner}
-                    className="w-full border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary rounded-none uppercase tracking-[0.2em]"
+                    className="w-full border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary rounded-none uppercase tracking-[0.2em] cursor-pointer"
                   >
                     <Camera size={14} className="mr-2" /> Start Scanner
                   </Button>
@@ -368,14 +437,14 @@ export default function AuthenticatorPage() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Button
                     type="submit"
-                    className="w-full sm:flex-1 bg-primary text-black hover:bg-white rounded-none uppercase tracking-[0.2em] font-bold"
+                    className="w-full sm:flex-1 bg-primary text-black hover:bg-white rounded-[5px] uppercase tracking-[0.2em] font-bold cursor-pointer"
                   >
                     Save Authenticator
                   </Button>
                   <Button
                     type="button"
                     onClick={() => setShowAdd(false)}
-                    className="w-full sm:w-auto border border-white/20 hover:border-red-500/50 rounded-none uppercase tracking-[0.2em] font-bold"
+                    className="w-full sm:w-auto border border-white/20 hover:border-red-500/50 rounded-[5px] uppercase tracking-[0.2em] font-bold cursor-pointer"
                   >
                     Cancel
                   </Button>
@@ -399,30 +468,50 @@ export default function AuthenticatorPage() {
             <div className="space-y-3">
               <AnimatePresence>
                 {authenticators.map((auth) => (
-                  <motion.div
-                    key={auth.id}
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="p-4 border border-white/10 bg-[rgba(20,19,19,0.637)] rounded-lg hover:border-primary/30 transition-all group"
-                  >
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Shield size={16} className="text-primary" />
-                          <h3 className="font-bold text-sm">
-                            {auth.issuer}
-                          </h3>
-                        </div>
-                        {auth.account_name && (
-                          <p className="text-xs text-gray-400">
-                            {auth.account_name}
+                  <ContextMenu key={auth.id}>
+                    <ContextMenuTrigger>
+                      <motion.div
+                        layout
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="p-4 border border-white/10 bg-[rgba(20,19,19,0.637)] rounded-lg hover:border-primary/30 transition-all group cursor-context-menu"
+                      >
+                        {(() => {
+                          const otp = otpById[auth.id];
+                          const secondsRemaining = otp?.seconds_remaining ?? 0;
+                          const period = otp?.period ?? 30;
+                          const progress = Math.max(0, Math.min(100, (secondsRemaining / period) * 100));
+
+                          return (
+                        <div className="flex items-start justify-between gap-4 flex-wrap">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Shield size={16} className="text-primary" />
+                              <h3 className="font-bold text-sm">
+                                {auth.issuer}
+                              </h3>
+                            </div>
+                            {auth.account_name && (
+                              <p className="text-xs text-white/40">
+                                {auth.account_name}
+                              </p>
+                            )}
+
+                        <div className="mt-2">
+                          <p className="text-2xl font-bitcount tracking-[0.22em] text-primary">
+                            {otp ? formatOtpCode(otp.code) : "••• •••"}
                           </p>
-                        )}
-                        <p className="text-xs text-gray-500 mt-2 font-mono break-all">
-                          {auth.secret_key}
-                        </p>
+                          <p className="text-xs uppercase tracking-[0.2em] text-white/40 mt-1">
+                            {otp ? `Refreshes in ${secondsRemaining}s` : "Code unavailable"}
+                          </p>
+                          <div className="mt-2 h-1 w-40 bg-white/10 overflow-hidden rounded-full">
+                            <div
+                              className="h-full bg-primary transition-all duration-500"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
                       </div>
 
                       <div className="flex gap-2">
@@ -435,11 +524,11 @@ export default function AuthenticatorPage() {
                         </button>
 
                         <button
-                          onClick={() => copySecret(auth.secret_key)}
+                          onClick={() => copySecret((otp && otp.code) || auth.secret_key)}
                           className="p-2 border border-white/10 hover:border-primary/30 hover:bg-primary/5 rounded-none transition-all"
-                          title="Copy secret key"
+                          title={otp ? "Copy current code" : "Copy secret key"}
                         >
-                          {copiedId === auth.secret_key ? (
+                          {copiedId === ((otp && otp.code) || auth.secret_key) ? (
                             <Check size={16} className="text-green-400" />
                           ) : (
                             <Copy size={16} />
@@ -455,7 +544,36 @@ export default function AuthenticatorPage() {
                         </button>
                       </div>
                     </div>
-                  </motion.div>
+                      );
+                    })()}
+                      </motion.div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className="font-inconsolata text-xs w-48 bg-white/10 border-white/20 backdrop-blur-sm">
+                      <ContextMenuItem
+                        onClick={() => handleShowQr(auth.id)}
+                        className="cursor-pointer text-white/80 hover:text-white hover:bg-white/10"
+                      >
+                        <QrCode size={12} className="mr-2" />
+                        View QR code
+                      </ContextMenuItem>
+                      <ContextMenuSeparator className="bg-white/10" />
+                      <ContextMenuItem
+                        onClick={() => copySecret((otpById[auth.id] && otpById[auth.id].code) || auth.secret_key)}
+                        className="cursor-pointer text-white/80 hover:text-white hover:bg-white/10"
+                      >
+                        <Copy size={12} className="mr-2" />
+                        Copy code
+                      </ContextMenuItem>
+                      <ContextMenuSeparator className="bg-white/10" />
+                      <ContextMenuItem
+                        onClick={() => handleDeleteAuthenticator(auth.id)}
+                        className="cursor-pointer text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                      >
+                        <Trash2 size={12} className="mr-2" />
+                        Delete
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 ))}
               </AnimatePresence>
             </div>
@@ -482,7 +600,7 @@ export default function AuthenticatorPage() {
                   </h3>
                   <button
                     onClick={stopScanner}
-                    className="p-2 border border-white/10 hover:border-red-500/50"
+                    className="p-2 border border-white/10 hover:border-red-500/50 cursor-pointer"
                     title="Close"
                   >
                     <X size={16} />
@@ -500,7 +618,7 @@ export default function AuthenticatorPage() {
                   <Button
                     type="button"
                     onClick={stopScanner}
-                    className="border border-white/20 hover:border-red-500/50 rounded-none uppercase tracking-[0.2em]"
+                    className="border border-white/20 hover:border-red-500/50 rounded-[5px] uppercase tracking-[0.2em] cursor-pointer"
                   >
                     <Square size={12} className="mr-2" /> Stop Scanner
                   </Button>

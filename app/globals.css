@@ -123,6 +123,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+  button:not(:disabled),
+  a[href],
+  [role="button"] {
+    cursor: pointer;
+  }
   body {
     @apply bg-background text-foreground;
   }

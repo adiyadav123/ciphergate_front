@@ -140,7 +140,7 @@ export default function PasswordGeneratorPage() {
           </h1>
           <button
             onClick={() => (window.location.href = "/dashboard")}
-            className="flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-[0.2em] hover:text-primary transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-[0.2em] hover:text-primary transition-colors cursor-pointer"
           >
             <ArrowLeft size={16} /> Back
           </button>
@@ -255,7 +255,7 @@ export default function PasswordGeneratorPage() {
           <Button
             onClick={generateVariants}
             disabled={!baseString.trim() || isGenerating}
-            className="w-full bg-primary text-black hover:bg-white rounded-none uppercase tracking-[0.2em] font-bold h-12"
+            className="w-full bg-primary text-black hover:bg-white  uppercase tracking-[0.2em] font-bold h-12 rounded-[10px] cursor-pointer"
           >
             {isGenerating ? "Generating..." : "Generate Variants"}
           </Button>
