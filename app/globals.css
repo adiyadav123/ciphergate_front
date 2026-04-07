@@ -132,7 +132,87 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    @apply font-sans scroll-smooth;
+  }
+}
+
+@media print {
+  @page {
+    margin: 0.35in;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 10pt !important;
+    line-height: 1.28 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  * {
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    color: #000000 !important;
+    break-inside: auto !important;
+    break-after: auto !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  header,
+  section,
+  article,
+  div {
+    margin-top: 0 !important;
+    margin-bottom: 0.18rem !important;
+    padding-top: 0.18rem !important;
+    padding-bottom: 0.18rem !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  section,
+  article,
+  div {
+    max-width: 100% !important;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    break-after: avoid-page;
+    margin-top: 0.12rem !important;
+    margin-bottom: 0.15rem !important;
+  }
+
+  p,
+  li {
+    margin-top: 0 !important;
+    margin-bottom: 0.12rem !important;
+  }
+
+  a {
+    text-decoration: none !important;
+  }
+
+  svg,
+  canvas {
+    color: #000000 !important;
+    fill: currentColor !important;
+    stroke: currentColor !important;
+    max-width: 100% !important;
   }
 }
 

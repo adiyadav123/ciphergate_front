@@ -1,6 +1,8 @@
 import { Geist, Geist_Mono, Bitcount_Prop_Double, Inconsolata } from "next/font/google";
 import "./globals.css";
 import { MfaReauthWatcher } from "@/components/mfa-reauth-watcher";
+import { SecurityHardeningGuard } from "@/components/security-hardening-guard";
+import { Toaster } from "@/components/ui/sonner";
 
 const bitCount = Bitcount_Prop_Double({
   variable: "--font-bitcount",
@@ -31,7 +33,9 @@ export default function RootLayout({ children }) {
     >
       <body className="min-h-full flex flex-col">
         <MfaReauthWatcher />
+        <SecurityHardeningGuard />
         {children}
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );

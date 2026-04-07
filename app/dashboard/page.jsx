@@ -28,6 +28,7 @@ import {
   Palette,
   List,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +39,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { API_BASE_URL } from "@/lib/env";
+import { getMfaMsRemaining, verifySessionWithMfa } from "@/lib/utils";
 
 const NOTE_PREVIEW_CLAMP_STYLE = {
   display: "-webkit-box",
@@ -87,9 +89,11 @@ function StatCard({ icon: Icon, label, value, delay = 0 }) {
 
 // ── Nav Card ──────────────────────────────────────────────────────────────
 function NavCard({ icon: Icon, label, sub, href, delay = 0 }) {
+  const router = useRouter();
+
   return (
     <motion.button
-      onClick={() => (window.location.href = href)}
+      onClick={() => router.push(href)}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.45, ease: [0.23, 1, 0.32, 1] }}
@@ -127,6 +131,7 @@ function SectionHeader({ children }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
+  const router = useRouter();
   const [session, setSession] = useState(null);
   const [vaultData, setVaultData] = useState({
     notes: [],
@@ -147,6 +152,7 @@ export default function DashboardPage() {
   const [noteColors, setNoteColors] = useState(["#ffffff", "#22c55e", "#3b82f6", "#ef4444"]);
   const [activeNoteColorSlot, setActiveNoteColorSlot] = useState(0);
   const [pendingColorTarget, setPendingColorTarget] = useState(null);
+  const [mfaRemainingMs, setMfaRemainingMs] = useState(0);
   const addNoteEditorRef = useRef(null);
   const editNoteEditorRef = useRef(null);
   const addNoteSelectionRef = useRef(null);
@@ -154,26 +160,35 @@ export default function DashboardPage() {
   const colorPickerRefs = useRef([]);
 
   useEffect(() => {
-    const raw = localStorage.getItem("cipher_session");
-    if (!raw) { window.location.href = "/auth/login"; return; }
-    let parsed = null;
-    try { parsed = JSON.parse(raw); } catch {
-      localStorage.removeItem("cipher_session");
-      window.location.href = "/auth/login";
-      return;
-    }
-    if (!parsed?.user?.id) {
-      localStorage.removeItem("cipher_session");
-      window.location.href = "/auth/login";
-      return;
-    }
-    if (!parsed?.mfaVerified) {
-      window.location.href = "/auth/mfa";
-      return;
-    }
+    const parsed = verifySessionWithMfa();
+    if (!parsed) return;
+    
     setSession(parsed);
+    setMfaRemainingMs(getMfaMsRemaining(parsed));
     initializeDashboard(parsed.user.id);
   }, []);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    const timer = window.setInterval(() => {
+      const raw = localStorage.getItem("cipher_session");
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw);
+        setMfaRemainingMs(getMfaMsRemaining(parsed));
+      } catch {
+        setMfaRemainingMs(0);
+      }
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [session?.user?.id]);
+
+  const mfaRemainingLabel = (() => {
+    const totalSec = Math.max(0, Math.floor(mfaRemainingMs / 1000));
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  })();
 
   useEffect(() => {
     if (quotes.length < 2) return;
@@ -371,7 +386,7 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     localStorage.removeItem("cipher_session");
-    window.location.href = "/auth/login";
+    router.push("/auth/login");
   };
 
   const handleDownloadRecoveryKey = async () => {
@@ -491,6 +506,17 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        <div className="max-w-7xl mx-auto px-6 pb-3">
+          <div className="w-full border border-amber-500/30 bg-amber-500/10 rounded-[8px] px-3 py-2 flex items-center justify-between gap-3">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-amber-300/90">
+              MFA re-auth countdown
+            </p>
+            <p className="text-xs font-mono text-amber-200">
+              {mfaRemainingLabel}
+            </p>
+          </div>
+        </div>
+
       <div className="max-w-7xl mx-auto px-6 py-12 space-y-14">
 
         {/* ── Quote rotator ── */}
@@ -548,9 +574,10 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <NavCard icon={MessagesSquare} label="Anonymous Chat" sub="Ephemeral shared rooms" href="/dashboard/chat" delay={0.12} />
+          <NavCard icon={Key} label="One-Time Secrets" sub="Burn-after-read secure notes" href="/dashboard/secrets" delay={0.16} />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <button
             onClick={handleDownloadRecoveryKey}
             className="p-4 border border-primary/30 bg-primary/5 text-left hover:bg-primary/10 transition-all rounded-[10px] cursor-pointer"
@@ -560,6 +587,17 @@ export default function DashboardPage() {
               <span className="text-xs uppercase tracking-[0.2em]">Recovery Key</span>
             </div>
             <p className="text-xs text-gray-400">Download your account recovery key and keep it offline.</p>
+          </button>
+
+          <button
+            onClick={() => router.push("/research-papers")}
+            className="p-4 border border-white/10 bg-[rgba(20,19,19,0.637)] text-left hover:border-primary/40 hover:bg-primary/5 transition-all rounded-[10px] cursor-pointer"
+          >
+            <div className="flex items-center gap-2 text-primary mb-2">
+              <FileText size={15} />
+              <span className="text-xs uppercase tracking-[0.2em]">Research Papers</span>
+            </div>
+            <p className="text-xs text-gray-400">Deep technical paper on CipherGate architecture, math, and implementation.</p>
           </button>
 
           <button
@@ -578,31 +616,43 @@ export default function DashboardPage() {
         <div>
           <SectionHeader>Bookmarks</SectionHeader>
 
-          <form onSubmit={handleAddBookmark} className="mb-6">
-            <div className="flex flex-col sm:flex-row gap-2">
+          <div className="mb-5 rounded-[10px] border border-white/10 bg-[rgba(20,19,19,0.5)] p-4">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.25em] text-primary/70">Saved links</p>
+                <p className="mt-1 text-sm text-white/45">Store quick-access links for your daily tools and resources.</p>
+              </div>
+              <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-white/50">
+                {vaultData.bookmarks.length} total
+              </span>
+            </div>
+
+            <form onSubmit={handleAddBookmark}>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1.1fr_auto] items-stretch">
               <Input
                 placeholder="Bookmark title"
                 value={newBookmark.title}
                 onChange={(e) => setNewBookmark({ ...newBookmark, title: e.target.value })}
-                className="bg-black/40 border-white/30 focus:border-primary/50 text-white placeholder:text-white/30 rounded-[5px] transition-colors"
+                className="bg-black/40 border-white/20 focus:border-primary/50 text-white placeholder:text-white/30 rounded-[8px] transition-colors"
               />
               <Input
                 placeholder="https://example.com"
                 type="url"
                 value={newBookmark.url}
                 onChange={(e) => setNewBookmark({ ...newBookmark, url: e.target.value })}
-                className="bg-black/40 border-white/30 focus:border-primary/50 text-white placeholder:text-white/30 rounded-[5px] transition-colors"
+                className="bg-black/40 border-white/20 focus:border-primary/50 text-white placeholder:text-white/30 rounded-[8px] transition-colors"
               />
               <Button
                 type="submit"
-                className="bg-primary text-black hover:bg-white rounded-[5px] uppercase tracking-[0.2em] font-bold shrink-0 transition-colors  cursor-pointer"
+                className="h-8 bg-primary text-black hover:bg-white rounded-[8px] uppercase tracking-[0.2em] font-bold shrink-0 transition-colors cursor-pointer px-5 self-stretch"
               >
-                <Plus size={15} className="mr-2" /> Add
+                <Plus size={15} className="mr-2" /> Save
               </Button>
-            </div>
-          </form>
+              </div>
+            </form>
+          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence>
               {vaultData.bookmarks.map((bm, i) => (
                 <motion.div
@@ -612,31 +662,43 @@ export default function DashboardPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: i * 0.04 }}
-                  className="relative p-4 border border-white/10 bg-[rgba(20,19,19,0.637)] group hover:border-primary/40 hover:bg-primary/5 transition-all duration-300 overflow-hidden"
+                  className="relative overflow-hidden rounded-[10px] border border-white/10 bg-[rgba(20,19,19,0.637)] p-4 transition-all duration-300 hover:border-primary/40 hover:bg-primary/5 group"
                 >
                   {/* top sweep on hover */}
                   <div className="absolute top-0 left-0 h-px w-0 group-hover:w-full bg-primary transition-all duration-500" />
 
-                  <h3 className="font-bold text-sm mb-1 truncate text-white">{bm.title}</h3>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 mb-1">Bookmark</p>
+                      <h3 className="font-bold text-sm truncate text-white">{bm.title}</h3>
+                    </div>
+                    <span className="shrink-0 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] text-white/45">
+                      #{String(i + 1).padStart(2, "0")}
+                    </span>
+                  </div>
+
                   <a
                     href={bm.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs text-primary hover:text-white transition-colors flex items-center gap-1 truncate mb-4"
+                    className="mb-4 flex items-center gap-1 truncate text-xs text-primary transition-colors hover:text-white"
                   >
                     <ExternalLink size={10} className="shrink-0" />
                     <span className="truncate">{bm.url}</span>
                   </a>
 
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleDeleteBookmark(bm.id)}
-                    disabled={deletingId === bm.id}
-                    className="flex items-center gap-1 text-xs text-red-400/60 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
-                  >
-                    <Trash2 size={12} />
-                    {deletingId === bm.id ? "Removing…" : "Remove"}
-                  </motion.button>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[10px] uppercase tracking-[0.16em] text-white/25">Quick access</span>
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleDeleteBookmark(bm.id)}
+                      disabled={deletingId === bm.id}
+                      className="flex items-center gap-1 text-xs text-red-400/60 transition-all opacity-0 group-hover:opacity-100 hover:text-red-400"
+                    >
+                      <Trash2 size={12} />
+                      {deletingId === bm.id ? "Removing…" : "Remove"}
+                    </motion.button>
+                  </div>
                 </motion.div>
               ))}
             </AnimatePresence>

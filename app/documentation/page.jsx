@@ -78,14 +78,14 @@ export default function Documentation() {
       {/* NAVBAR */}
       <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-black/80 backdrop-blur-md px-6 py-2">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2 group cursor-pointer" onClick={() => window.location.href = '/'}>
+          <div className="flex items-center gap-2 group cursor-pointer" onClick={() => router.push('/')}>
             <Shield className="text-primary" size={18} />
             <span className=" tracking-tighter text-base italic uppercase">CipherGate</span>
           </div>
           <Button 
             variant="ghost" 
             className="text-[10px] uppercase  tracking-widest text-gray-500 hover:text-primary"
-            onClick={() => window.location.href = '/'}
+            onClick={() => router.push('/')}
           >
             <ChevronLeft size={14} className="mr-1" /> Return to Base
           </Button>

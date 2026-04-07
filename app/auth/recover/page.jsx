@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { API_BASE_URL } from "@/lib/env";
+import { useRouter } from "next/navigation";
 
 export default function RecoverPage() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState(null);
   const [formData, setFormData] = useState({
@@ -46,7 +48,7 @@ export default function RecoverPage() {
 
       setStatus({ type: "success", msg: "Password reset complete. Redirecting to login..." });
       setTimeout(() => {
-        window.location.href = "/auth/login";
+        router.push("/auth/login");
       }, 1200);
     } catch (err) {
       setStatus({ type: "error", msg: err.message || "Recovery failed." });
@@ -145,7 +147,7 @@ export default function RecoverPage() {
 
         <div className="mt-6 text-center">
           <button
-            onClick={() => (window.location.href = "/auth/login")}
+            onClick={() => router.push("/auth/login")}
             className="text-xs uppercase tracking-[0.2em] text-gray-500 hover:text-primary flex items-center justify-center gap-2 w-full"
           >
             <ArrowLeft size={14} /> Back to login

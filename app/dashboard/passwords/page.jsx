@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/context-menu";
 import zxcvbn from "zxcvbn";
 import { API_BASE_URL } from "@/lib/env";
+import { verifySessionWithMfa } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 const formatCrackTime = (seconds) => {
   if (seconds < 1) return "Instant";
@@ -111,6 +113,7 @@ const estimatePasswordStrength = (password = "") => {
 };
 
 export default function PasswordManagerPage() {
+  const router = useRouter();
   const [session, setSession] = useState(null);
   const [passwords, setPasswords] = useState([]);
   const [breachedIds, setBreachedIds] = useState(new Set());
@@ -179,31 +182,8 @@ export default function PasswordManagerPage() {
 
 
   useEffect(() => {
-    const raw = localStorage.getItem("cipher_session");
-    if (!raw) {
-      window.location.href = "/auth/login";
-      return;
-    }
-
-    let parsed = null;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      localStorage.removeItem("cipher_session");
-      window.location.href = "/auth/login";
-      return;
-    }
-
-    if (!parsed?.user?.id) {
-      localStorage.removeItem("cipher_session");
-      window.location.href = "/auth/login";
-      return;
-    }
-
-    if (!parsed?.mfaVerified) {
-      window.location.href = "/auth/mfa";
-      return;
-    }
+    const parsed = verifySessionWithMfa();
+    if (!parsed) return;
 
     setSession(parsed);
     fetchPasswords(parsed.user.id);
@@ -323,7 +303,7 @@ export default function PasswordManagerPage() {
             Password Manager
           </h1>
           <button
-            onClick={() => (window.location.href = "/dashboard")}
+            onClick={() => router.push("/dashboard")}
             className="flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-[0.2em] hover:text-primary transition-colors cursor-pointer"
           >
             <ArrowLeft size={16} /> Back
