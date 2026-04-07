@@ -190,11 +190,3 @@ export default function MfaPage() {
     </div>
   );
 }
-
-export default function MfaPage() {
-	return (
-		<Suspense fallback={<MfaFallback />}>
-			<MfaClient />
-		</Suspense>
-	);
-}
