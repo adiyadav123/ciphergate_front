@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { API_BASE_URL } from "@/lib/env";
 
-export default function MfaPage() {
+export default function MfaClient() {
 	const [loading, setLoading] = useState(true);
 	const [verifying, setVerifying] = useState(false);
 	const [code, setCode] = useState("");
