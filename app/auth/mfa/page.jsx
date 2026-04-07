@@ -120,69 +120,10 @@ export default function MfaPage() {
 		);
 	}
 
+export default function MfaPage() {
 	return (
-		<div className="min-h-screen bg-black text-white font-inconsolata flex items-center justify-center px-6">
-			<div className="w-full max-w-xl rounded-[20px] bg-[rgba(20,19,19,0.637)] border border-white/10 p-8">
-				<h1 className="text-3xl text-primary font-bitcount uppercase">Multi-Factor Authentication</h1>
-				<p className="mt-3 text-sm text-gray-400">
-					{isReauth && "Session timed out. Re-enter your code to continue. "}
-					{challenge?.needs_setup
-						? "Scan this QR in Google Authenticator (or any TOTP app), then enter the 6-digit code."
-						: "Enter your current 6-digit authenticator code to continue."}
-				</p>
-
-				{challenge?.needs_setup && (
-					<div className="mt-6 rounded-lg border border-primary/20 bg-black/40 p-4">
-						{challenge?.qr_code_url && (
-							<img
-								src={challenge.qr_code_url}
-								alt="MFA QR code"
-								className="mx-auto h-56 w-56 rounded-md border border-white/10 bg-white p-2"
-							/>
-						)}
-						<p className="mt-4 text-xs uppercase tracking-[0.2em] text-gray-500">Manual setup key</p>
-						<p className="mt-2 break-all text-sm text-primary font-mono">{challenge?.secret_key}</p>
-					</div>
-				)}
-
-				<form onSubmit={handleVerify} className="mt-6 space-y-4">
-					<div className="space-y-2">
-						<Label htmlFor="mfa-code" className="text-gray-400">Authenticator code</Label>
-						<Input
-							id="mfa-code"
-							inputMode="numeric"
-							pattern="[0-9]*"
-							maxLength={6}
-							value={code}
-							onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ""))}
-							placeholder="123456"
-							className="h-12 bg-black/40 border-gray-600 text-xl tracking-[0.3em] text-center rounded-[10px]"
-							required
-						/>
-					</div>
-
-					<Button
-						type="submit"
-						disabled={verifying}
-						className="w-full h-12 bg-primary text-black hover:bg-white rounded-[10px] uppercase tracking-[0.2em] font-bold cursor-pointer"
-					>
-						{verifying ? "Verifying..." : "Verify and continue"}
-					</Button>
-				</form>
-
-				{status && (
-					<div
-						className={`mt-5 p-3 border flex items-center gap-2 text-sm ${
-							status.type === "success"
-								? "bg-green-500/5 border-green-500/25 text-green-400"
-								: "bg-red-500/5 border-red-500/25 text-red-400"
-						}`}
-					>
-						{status.type === "success" ? <ShieldCheck size={18} /> : <AlertCircle size={18} />}
-						<span>{status.msg}</span>
-					</div>
-				)}
-			</div>
-		</div>
+		<Suspense fallback={<MfaFallback />}>
+			<MfaClient />
+		</Suspense>
 	);
 }
