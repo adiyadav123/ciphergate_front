@@ -20,8 +20,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { API_BASE_URL } from "@/lib/env";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,6 +34,16 @@ export default function LoginPage() {
     password: "",
     confirmPassword: ""
   });
+
+  const [nextPath, setNextPath] = useState("/dashboard");
+
+  useEffect(() => {
+    const qs = new URLSearchParams(window.location.search || "");
+    const next = qs.get("next");
+    if (next && next.startsWith("/")) {
+      setNextPath(next);
+    }
+  }, []);
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -71,7 +83,7 @@ export default function LoginPage() {
           
           setStatus({ type: 'success', msg: "Authentication verified. Redirecting..." });
           setTimeout(() => {
-            window.location.href = "/auth/mfa";
+            router.push(`/auth/mfa?next=${encodeURIComponent(nextPath)}`);
           }, 1500);
         } else {
           setStatus({ type: 'success', msg: "Node initialized. You may now login." });
@@ -138,7 +150,7 @@ export default function LoginPage() {
               {isLogin && (
                 <button
                   type="button"
-                  onClick={() => (window.location.href = "/auth/recover")}
+                  onClick={() => router.push("/auth/recover")}
                   className="text-[10px] uppercase tracking-[0.2em] text-gray-500 hover:text-primary transition-colors cursor-pointer"
                 >
                   Forgot password?
@@ -238,7 +250,7 @@ export default function LoginPage() {
       {/* Navigation */}
       <div className="mt-12">
         <button 
-          onClick={() => window.location.href = '/'}
+          onClick={() => router.push('/')}
           className="text-gray-700 hover:text-primary transition-colors flex items-center gap-2 uppercase text-[10px] font-black tracking-[0.4em] cursor-pointer"
         >
           <ArrowLeft size={14} /> Back to home page

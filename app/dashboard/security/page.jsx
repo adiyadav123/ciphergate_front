@@ -16,8 +16,19 @@ import {
   LockKeyhole,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 
-const AUTHOR_POOL = ["Aditi Shukla", "Aditya Yadav"];
+const ARTICLE_AUTHORS = [
+  "Aditi Shukla",
+  "Aditi Shukla",
+  "Aditi Shukla",
+  "Aditya Yadav",
+  "Aditi Shukla",
+  "Aditi Shukla",
+  "Aditya Yadav",
+  "Aditi Shukla",
+  "Aditi Shukla",
+];
 
 const articles = [
   {
@@ -160,27 +171,23 @@ const articles = [
 const stripHtml = (value = "") => value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
 export default function SecurityGuidePage() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [selectedArticle, setSelectedArticle] = useState(null);
 
-  const authoredArticles = useMemo(
-    () =>
-      articles.map((item) => ({
-        ...item,
-        author: AUTHOR_POOL[Math.floor(Math.random() * AUTHOR_POOL.length)],
-      })),
-    []
-  );
-
   const filteredArticles = useMemo(() => {
     const needle = search.trim().toLowerCase();
+    const authoredArticles = articles.map((item, idx) => ({
+      ...item,
+      author: ARTICLE_AUTHORS[idx] || "Aditi Shukla",
+    }));
     if (!needle) return authoredArticles;
 
     return authoredArticles.filter((item) => {
       const haystack = `${item.title} ${item.summary} ${stripHtml(item.content)} ${item.author}`.toLowerCase();
       return haystack.includes(needle);
     });
-  }, [search, authoredArticles]);
+  }, [search]);
 
   return (
     <div className="min-h-screen bg-black text-white font-inconsolata">
@@ -190,7 +197,7 @@ export default function SecurityGuidePage() {
             <Shield size={18} /> Account Security Guide
           </h1>
           <button
-            onClick={() => (window.location.href = "/dashboard")}
+            onClick={() => router.push("/dashboard")}
             className="flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-[0.2em] hover:text-primary transition-colors cursor-pointer"
           >
             <ArrowLeft size={16} /> Back

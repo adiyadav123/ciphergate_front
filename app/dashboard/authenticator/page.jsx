@@ -27,8 +27,11 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { API_BASE_URL } from "@/lib/env";
+import { verifySessionWithMfa } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 export default function AuthenticatorPage() {
+  const router = useRouter();
   const [session, setSession] = useState(null);
   const [authenticators, setAuthenticators] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,31 +54,8 @@ export default function AuthenticatorPage() {
   });
 
   useEffect(() => {
-    const raw = localStorage.getItem("cipher_session");
-    if (!raw) {
-      window.location.href = "/auth/login";
-      return;
-    }
-
-    let parsed = null;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      localStorage.removeItem("cipher_session");
-      window.location.href = "/auth/login";
-      return;
-    }
-
-    if (!parsed?.user?.id) {
-      localStorage.removeItem("cipher_session");
-      window.location.href = "/auth/login";
-      return;
-    }
-
-    if (!parsed?.mfaVerified) {
-      window.location.href = "/auth/mfa";
-      return;
-    }
+    const parsed = verifySessionWithMfa();
+    if (!parsed) return;
 
     setSession(parsed);
     fetchAuthenticators(parsed.user.id);
@@ -321,7 +301,7 @@ export default function AuthenticatorPage() {
             Authenticators
           </h1>
           <button
-            onClick={() => (window.location.href = "/dashboard")}
+            onClick={() => router.push("/dashboard")}
             className="flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-[0.2em] hover:text-primary transition-colors cursor-pointer"
           >
             <ArrowLeft size={16} /> Back

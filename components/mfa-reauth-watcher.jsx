@@ -2,8 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-
-const MFA_REAUTH_WINDOW_MS = 5 * 60 * 1000;
+import { MFA_REAUTH_WINDOW_MS } from "@/lib/utils";
 
 const isAuthRoute = (pathname = "") => pathname.startsWith("/auth/login") || pathname.startsWith("/auth/mfa");
 
@@ -44,7 +43,8 @@ export function MfaReauthWatcher() {
           mfaVerified: false,
         }),
       );
-      router.replace("/auth/mfa?reauth=1");
+      const next = `${window.location.pathname}${window.location.search || ""}`;
+      router.replace(`/auth/mfa?reauth=1&next=${encodeURIComponent(next)}`);
     };
 
     evaluateSession();
